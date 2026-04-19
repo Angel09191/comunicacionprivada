@@ -1,125 +1,134 @@
-/* ====== PÁGINA DE CONTACTO ====== */
+/* ═══════════════════════════════════════════════════════════════
+   Contact Page Styles - Matches deployed design
+   ═══════════════════════════════════════════════════════════════ */
+
 .contact-page {
-  text-align: center;
-  padding: 80px 20px;
-  background: linear-gradient(180deg, #0a192f 0%, #112240 100%);
-  color: #e6edf2;
-  font-family: "Poppins", sans-serif;
-  transition: background-color 0.4s ease, color 0.4s ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Título principal */
-.contact-page h1 {
-  font-size: 2.4rem;
-  margin-bottom: 20px;
-  color: #00b4d8;
-}
-
-/* Descripción */
-.contact-description {
-  font-size: 1.1rem;
-  max-width: 700px;
-  margin: 0 auto 50px auto;
-  color: #cfd8e3;
-  line-height: 1.7;
-}
-
-/* Información de contacto */
-.contact-info {
-  background: #112240;
-  border-radius: 16px;
-  padding: 30px 25px;
-  max-width: 600px;
-  margin: 0 auto 60px auto;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-.contact-info h3 {
-  color: #00b4d8;
-  margin-bottom: 15px;
-  font-size: 1.4rem;
-}
-
-.contact-info p {
-  font-size: 1.05rem;
-  color: #e6edf2;
-  margin: 8px 0;
-}
-
-/* Mapa */
-.contact-map {
-  max-width: 800px;
+.contact-container {
+  flex: 1;
+  width: 100%;
+  max-width: 42rem;
   margin: 0 auto;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 8px 25px rgba(0, 180, 216, 0.2);
+  padding: 2.5rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .contact-container {
+    padding: 3rem 1.5rem;
+  }
+}
+
+/* ─── Header ─── */
+.contact-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.contact-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-2xl);
+  background: var(--color-primary-10);
+  color: var(--color-primary);
+  margin: 0 auto 1rem;
+}
+
+.contact-header h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 640px) {
+  .contact-header h1 {
+    font-size: 2.25rem;
+  }
+}
+
+.contact-header p {
+  margin-top: 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ─── Contact Cards ─── */
+.contact-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.contact-card-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+}
+
+.contact-icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-xl);
+  flex-shrink: 0;
   transition: transform 0.3s ease;
 }
 
-.contact-map:hover {
-  transform: scale(1.02);
+.contact-card:hover .contact-icon-circle {
+  transform: scale(1.1);
 }
 
-/* ====== MODO CLARO ====== */
-body:not(.dark) .contact-page {
-  background: linear-gradient(180deg, #eaf4ff 0%, #cce5f6 100%);
-  color: #0a192f;
+.contact-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-body:not(.dark) .contact-page h1 {
-  color: #0077b6;
+.contact-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 
-body:not(.dark) .contact-description {
-  color: #1a1a1a;
+.contact-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
-body:not(.dark) .contact-info {
-  background: #ffffff;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+.contact-link {
+  text-decoration: none;
+  transition: color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 
-body:not(.dark) .contact-info h3 {
-  color: #0077b6;
+.contact-link:hover {
+  color: var(--color-primary);
 }
 
-body:not(.dark) .contact-info p {
-  color: #0a192f;
+/* ─── Map ─── */
+.contact-map {
+  margin-bottom: 1rem;
 }
 
-body:not(.dark) .contact-map {
-  box-shadow: 0 8px 25px rgba(0, 119, 182, 0.2);
-}
-
-/* ====== RESPONSIVE ====== */
-@media (max-width: 768px) {
-  .contact-page {
-    padding: 60px 15px;
-  }
-
-  .contact-page h1 {
-    font-size: 2rem;
-  }
-
-  .contact-description {
-    font-size: 1rem;
-  }
-
-  .contact-info {
-    padding: 25px 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .contact-page h1 {
-    font-size: 1.8rem;
-  }
-
-  .contact-description {
-    font-size: 0.95rem;
-  }
-
-  .contact-info p {
-    font-size: 0.9rem;
-  }
+.contact-map iframe {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-xl);
 }

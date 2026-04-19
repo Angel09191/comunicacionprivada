@@ -1,152 +1,458 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import {
+  Eye,
+  EyeOff,
+  User,
+  Mail,
+  Lock,
+  Shield,
+  Info,
+} from "lucide-react";
 import "../stylesheets/SignUp.css";
+import "../stylesheets/shared-styles.css";
 import Footer from "../components/Footer";
-import { registrarUsuario } from "../../api/register";
+import PasswordStrength from "../../assets/components/PasswordStrength";
+import { registrarUsuario } from "../../api/services";
 import { useNavigate } from "react-router-dom";
-import emailjs from "emailjs-com";
+
 
 function SignUp() {
   const navigate = useNavigate();
+const successRef = useRef(null);
 
   const [formData, setFormData] = useState({
-    user: "",
+    username: "",
+    email: "",
     password: "",
-    email: ""
+    confirmPassword: "",
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [touched, setTouched] = useState({});
+  const [successData, setSuccessData] = useState(null);
+
+  // ─── Validaciones ───
+  const usernameRules = {
+    minLength: formData.username.length >= 3,
+    maxLength: formData.username.length <= 20,
+    validChars: /^[a-zA-Z0-9_]*$/.test(formData.username),
+    notEmpty: formData.username.length > 0,
   };
 
-  const datetime = new Date().toLocaleString("es-CO", {
-      timeZone: "America/Bogota",
-      dateStyle: "short",
-      timeStyle: "medium",
+  const isUsernameValid =
+    usernameRules.notEmpty &&
+    usernameRules.minLength &&
+    usernameRules.maxLength &&
+    usernameRules.validChars;
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const isEmailValid = formData.email.trim().length > 0 && emailRegex.test(formData.email.trim());
+
+  const passwordRules = {
+    minLength: formData.password.length >= 8,
+    hasUpper: /[A-Z]/.test(formData.password),
+    hasLower: /[a-z]/.test(formData.password),
+    hasNumber: /[0-9]/.test(formData.password),
+    hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(formData.password),
+  };
+
+  const allPasswordRulesPassed = Object.values(passwordRules).every(Boolean);
+  const passwordsMatch = formData.password.length > 0 && formData.password === formData.confirmPassword;
+  const isFormValid = isUsernameValid && isEmailValid && allPasswordRulesPassed && passwordsMatch;
+
+  const handleInputChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+    if (apiError) setApiError("");
+  };
+
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!isFormValid || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setApiError("");
+
+    try {
+      const { response, data } = await registrarUsuario({
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+
+      if (response.status === 201 && data.status === "ok") {
+        setSuccessData({
+        username: data.data?.username || formData.username,
+        email: data.data?.email || formData.email,
+        domain: data.data?.domain || "im.bmstecnology.com",
     });
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const payload = { ...formData, datetime };
-    const response = await registrarUsuario(formData, payload);
-    const data = await response.json();
-
-    if (data.status === "ok") {
-      alert("✅ Usuario registrado con éxito.\nAhora puedes iniciar sesión desde la app Monocles.");
-      emailjs.send(
-    "service_u8irbbp",        
-    "template_kqjsgur",       
-    {
-      email: formData.email,
-      user: formData.user,
-      password: formData.password
-    },
-    "wWKCHVEzIAXwgz9LJ"      
-  ).then(
-    //(response) => console.log("Correo enviado:", response),
-    //(error) => console.error("Error al enviar correo:", error)
-  );
-  emailjs.send(
-    "service_u8irbbp",
-    "template_fhezx47",      
-    {
-      user: formData.user,
-      email: formData.email,
-      datetime: datetime
-    },
-    "wWKCHVEzIAXwgz9LJ"
-  );
-
-      navigate("/instructions");
-    } else if (data.status === "exists") {
-      alert("⚠️ " + data.message);
-    } else {
-      alert("❌ " + (data.message || "Algo salió mal. Inténtalo más tarde."));
-      //console.error("Error backend:", data);
+        setIsSubmitting(false);
+        setTimeout(() => {
+        successRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return;
+      } else if (response.status === 409) {
+        setApiError(data.message || "El nombre de usuario o correo ya está registrado.");
+      } else if (response.status === 422) {
+        const details = data.details ? data.details.map((d) => d.message).join("\n") : data.message;
+        setApiError(details || "Error de validación en los datos.");
+      } else if (response.status === 429) {
+        const min = Math.ceil((data.retryAfter || 3600) / 60);
+        setApiError(`Demasiados intentos. Intenta de nuevo en ${min} minuto(s).`);
+      } else {
+        setApiError(data.message || "Error al registrar. Intenta más tarde.");
+      }
+    } catch {
+      setApiError("Error de conexión con el servidor.");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (error) {
-    alert("❌ Error de conexión con el servidor.");
-    //console.error(error);
-  }
-};
-
+  };
 
   return (
-    <div className="signup">
-      <div className="title">
-        <h1>Registro de nuevo usuario</h1>
-      </div>
+    <div className="signup-page">
+      <div className="signup-container">
+        {/* Header */}
+        <div className="signup-header animate-fade-in-up">
+          <div className="signup-icon-box">
+            <User size={28} />
+          </div>
+          <h1>Registro de nuevo usuario</h1>
+          <p>Crea tu cuenta en el sistema de comunicaciones seguras de BMSTecnology.</p>
+        </div>
 
-      {/* 🔹 Sección informativa explicativa */}
-      <section className="signup-instructions">
-        <h2>¿Cómo registrarte correctamente?</h2>
-        <ol>
-          <li>
-            <strong>1️⃣ Nombre de usuario:</strong> Crea un nombre único para tu cuenta.  
-            Evita usar espacios o caracteres especiales.
-          </li>
-          <li>
-            <strong>2️⃣ Contraseña segura:</strong> Debe tener al menos 8 caracteres, 
-            incluir una letra mayúscula, una minúscula y un número.
-          </li>
-          <li>
-            <strong>3️⃣ Correo electrónico:</strong> Usa un <strong>CORREO ELECTRONICO VALIDO </strong>para Verificacion.
-          </li>
-          <li>
-            <strong>4️⃣ Después del registro:</strong> Abre la aplicación <strong>Monocles</strong> en tu móvil.
-            Inicia sesión con el mismo usuario + @im.bmstecnology.com (Ej: usuario1@im.bmstecnology.com) y contraseña que registraste aquí.
-            </li>
-          <li>
-            <strong>5️⃣ Seguridad:</strong> Tus datos se cifran de extremo a extremo, 
-            garantizando total privacidad.
-          </li>
-        </ol>
-        <p className="note">
-          💡 Consejo: guarda tu contraseña en un lugar seguro. Puedes cambiarla a traves de la aplicacion, pero en caso de perdida....
-        </p>
-      </section>
+        {/* Instructions Alert */}
+        <div className="sc-alert sc-alert-info animate-fade-in-up delay-100">
+          <Info className="alert-icon" size={16} />
+          <div className="alert-content">
+            <strong>¿Cómo registrarte correctamente?</strong>
+            <ol>
+              <li>
+                Crea un <strong>nombre de usuario</strong> único (3-20 caracteres, letras, números y guiones bajos).
+              </li>
+              <li>
+                Ingresa una <strong>contraseña segura</strong> (mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial).
+              </li>
+              <li>
+                Proporciona un <strong>correo electrónico válido</strong> para verificación.
+              </li>
+              <li>
+                Después del registro, abre la app <strong>Monocles Chat</strong> e inicia sesión con tu usuario +{" "}
+                <code className="server-code">@im.bmstecnology.com</code>
+              </li>
+            </ol>
+          </div>
+        </div>
 
-      {/* 🔹 Formulario de registro */}
-      <div className="sign">
-        <div className="sign-box">
-          <p className="form-intro">
-            Completa el formulario para crear tu cuenta en el sistema de comunicaciones seguras.
-          </p>
-          <form onSubmit={handleSubmit}>
-            <div className="input-field">
-              <input
-                type="text"
-                name="user"
-                placeholder="Nombre de usuario"
-                onChange={handleChange}
-                required
-              />
+        {/* Form Card */}
+        <div className="sc-card-solid signup-form-card animate-fade-in-up delay-200">
+          <div className="form-card-header">
+            <h2>
+              <Shield size={20} />
+              Formulario de Registro
+            </h2>
+            <p>Completa todos los campos para crear tu cuenta segura.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="signup-form">
+                      {/* API Error */}
+          {apiError && (
+            <div className="sc-alert sc-alert-destructive">
+              <span className="alert-icon">⚠</span>
+              <span>{apiError}</span>
             </div>
-            <div className="input-field">
-              <input
-                type="password"
-                name="password"
-                placeholder="Contraseña"
-                onChange={handleChange}
-                required
-              />
+          )}
+
+          {/* Success Screen */}
+          {successData ? (
+            <div ref={successRef} className="signup-success animate-scale-in">
+              <div className="success-icon-wrap">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
+              <h3>¡Cuenta creada exitosamente!</h3>
+              <div className="success-details">
+                <div className="success-detail-item">
+                  <span className="success-label">Usuario XMPP:</span>
+                  <code className="success-code">{successData.username}@{successData.domain}</code>
+                </div>
+                <div className="success-detail-item">
+                  <span className="success-label">Correo:</span>
+                  <span>{successData.email}</span>
+                </div>
+              </div>
+              <p className="success-tip">
+                Ahora abre la app <strong>Monocles Chat</strong> en tu dispositivo e inicia sesión con los datos anteriores.
+              </p>
+                <div className="success-buttons">
+                  <a
+                    href="http://comsec.bmstecnology.com/monocles.apk"
+                    download
+                    className="sc-btn sc-btn-primary"
+                    style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}
+                  >
+                    📱 Descargar Monocles Chat
+                  </a>
+                  <button
+                    type="button"
+                    className="sc-btn sc-btn-outline"
+                    onClick={() => navigate("/instructions")}
+                  >
+                    Ver instrucciones de conexión
+                  </button>
+                  <button
+                    type="button"
+                    className="sc-btn sc-btn-outline"
+                    onClick={() => {
+                      setSuccessData(null);
+                      setFormData({ username: "", email: "", password: "", confirmPassword: "" });
+                      setTouched({});
+                    }}
+                  >
+                    Registrar otro usuario
+                  </button>
+              </div>
             </div>
-            <div className="input-field">
-              <input
-                type="email"
-                name="email"
-                placeholder="Correo electrónico"
-                onChange={handleChange}
-                required
-              />
+          ) : (
+            <form onSubmit={handleSubmit} className="signup-form">
+              {/* ... AQUI VA EL FORMULARIO EXISTENTE CON TODOS LOS CAMPOS ... */}
+            </form>
+          )}
+
+            {/* Username */}
+            <div className="form-group">
+              <label className="sc-label">
+                <User size={14} className="label-icon" />
+                Nombre de usuario
+              </label>
+              <div className="input-with-icon">
+                <input
+                  type="text"
+                  name="username"
+                  placeholder="ej: usuario_seguro"
+                  onChange={(e) => handleInputChange("username", e.target.value)}
+                  onBlur={() => handleBlur("username")}
+                  value={formData.username}
+                  className={`sc-input ${
+                    touched.username && !isUsernameValid && formData.username.length > 0
+                      ? "sc-input-error"
+                      : isUsernameValid
+                        ? "sc-input-success"
+                        : ""
+                  }`}
+                  autoComplete="username"
+                />
+                <div className="input-status-icon">
+                  {formData.username.length > 0 &&
+                    (isUsernameValid ? (
+                      <CheckIcon />
+                    ) : (
+                      <XIcon />
+                    ))}
+                </div>
+              </div>
+              {(touched.username || formData.username.length > 0) && (
+                <div className="validation-rules">
+                  <ValidationItem label="Mínimo 3 caracteres" passed={usernameRules.minLength} />
+                  <ValidationItem label="Solo letras, números y guiones bajos" passed={usernameRules.validChars} />
+                </div>
+              )}
             </div>
-            <button type="submit">Registrarse</button>
+
+            {/* Email */}
+            <div className="form-group">
+              <label className="sc-label">
+                <Mail size={14} className="label-icon" />
+                Correo electrónico
+              </label>
+              <div className="input-with-icon">
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="ej: correo@ejemplo.com"
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  onBlur={() => handleBlur("email")}
+                  value={formData.email}
+                  className={`sc-input ${
+                    touched.email && formData.email.trim().length > 0 && !isEmailValid
+                      ? "sc-input-error"
+                      : isEmailValid
+                        ? "sc-input-success"
+                        : ""
+                  }`}
+                  autoComplete="email"
+                />
+                <div className="input-status-icon">
+                  {formData.email.trim().length > 0 &&
+                    (isEmailValid ? <CheckIcon /> : <XIcon />)}
+                </div>
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="form-group">
+              <label className="sc-label">
+                <Lock size={14} className="label-icon" />
+                Contraseña
+              </label>
+              <div className="input-with-icon">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Mínimo 8 caracteres"
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onBlur={() => handleBlur("password")}
+                  value={formData.password}
+                  className="sc-input"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="toggle-password-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <PasswordStrength password={formData.password} />
+            </div>
+
+            {/* Confirm Password */}
+            <div className="form-group">
+              <label className="sc-label">
+                <Lock size={14} className="label-icon" />
+                Confirmar contraseña
+              </label>
+              <div className="input-with-icon">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  placeholder="Repite tu contraseña"
+                  onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                  onBlur={() => handleBlur("confirmPassword")}
+                  value={formData.confirmPassword}
+                  className={`sc-input ${
+                    touched.confirmPassword &&
+                    formData.confirmPassword.length > 0 &&
+                    !passwordsMatch
+                      ? "sc-input-error"
+                      : passwordsMatch
+                        ? "sc-input-success"
+                        : ""
+                  }`}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="toggle-password-btn"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  tabIndex={-1}
+                  aria-label={
+                    showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  }
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {formData.confirmPassword.length > 0 && (
+                <div className="match-indicator">
+                  {passwordsMatch ? (
+                    <>
+                      <span className="match-dot match-dot-success">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                      <span className="match-text match-text-success">Las contraseñas coinciden</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="match-dot match-dot-error">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
+                      <span className="match-text match-text-error">Las contraseñas no coinciden</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={!isFormValid || isSubmitting}
+              className="sc-btn sc-btn-primary submit-btn"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" className="animate-spin" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
+                    <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" opacity="0.75" />
+                  </svg>
+                  Registrando...
+                </>
+              ) : (
+                <>
+                  <Shield size={16} />
+                  Crear cuenta segura
+                </>
+              )}
+            </button>
           </form>
         </div>
+
+        <p className="signup-tip">
+          💡 Consejo: Guarda tu contraseña en un lugar seguro. Puedes cambiarla a través de la
+          aplicación, pero en caso de pérdida será necesario contactar soporte.
+        </p>
       </div>
 
-      <Footer />
+      
+    </div>
+  );
+}
+
+/* ─── Micro Components ─── */
+
+function CheckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function ValidationItem({ label, passed }) {
+  return (
+    <div className={`validation-item ${passed ? "validation-passed" : ""}`}>
+      <span className={`validation-dot ${passed ? "validation-dot-passed" : ""}`}>
+        {passed && (
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </span>
+      <span>{label}</span>
     </div>
   );
 }
