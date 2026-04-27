@@ -1,4 +1,7 @@
+'use client'
+
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   Shield,
   Lock,
@@ -15,6 +18,7 @@ import {
   CheckCircle2,
   Globe,
   ArrowRight,
+  Download,
 } from "lucide-react";
 import "../stylesheets/Home.css";
 
@@ -47,15 +51,15 @@ function Home() {
               vigilancia.
             </p>
             <div className="hero-buttons animate-fade-in-up delay-300">
-              <a href="/signup" className="sc-btn sc-btn-primary sc-btn-lg">
+              <Link to="/signup" className="sc-btn sc-btn-primary sc-btn-lg">
                 <UserPlus size={20} />
                 Registrarse
                 <ArrowRight size={16} />
-              </a>
-              <a href="/contact" className="sc-btn sc-btn-outline sc-btn-lg">
+              </Link>
+              <Link to="/contact" className="sc-btn sc-btn-outline sc-btn-lg">
                 <Send size={16} />
                 Contáctanos
-              </a>
+              </Link>
             </div>
             <div className="trust-indicators animate-fade-in delay-500">
               <div className="trust-item">
@@ -221,8 +225,9 @@ function Home() {
               {
                 step: "02",
                 title: "Descarga Monocles",
-                description: "Obtén la aplicación Monocles Chat desde a trav`s del siguiente enlace: ",
+                description: "Obtén la aplicación Monocles Chat desde el siguiente enlace:",
                 icon: <Smartphone size={20} />,
+                download: "https://comsec.bmstecnology.com/monocles.apk",
               },
               {
                 step: "03",
@@ -247,6 +252,19 @@ function Home() {
                   </div>
                   <h3>{item.title}</h3>
                   <p>{item.description}</p>
+                  {item.download && (
+                    <a
+                      href={item.download}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="sc-btn sc-btn-primary"
+                      style={{ marginTop: '0.75rem', fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      <Download size={16} />
+                      Descargar APK
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
@@ -267,15 +285,15 @@ function Home() {
                 comunicaciones privadas y cifradas.
               </p>
               <div className="cta-buttons">
-                <a href="/signup" className="sc-btn sc-btn-white sc-btn-lg">
+                <Link to="/signup" className="sc-btn sc-btn-white sc-btn-lg">
                   <UserPlus size={20} />
                   Crear mi cuenta
                   <ArrowRight size={16} />
-                </a>
-                <a href="/contact" className="sc-btn sc-btn-white-outline sc-btn-lg">
+                </Link>
+                <Link to="/contact" className="sc-btn sc-btn-white-outline sc-btn-lg">
                   <Send size={16} />
                   Más información
-                </a>
+                </Link>
               </div>
             </div>
           </div>
